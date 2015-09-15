@@ -3,11 +3,10 @@ program main
    real(8) :: a(n)
    integer :: b(n)
    integer :: c(n)
-   logical :: mask(n)
 
    integer :: nuniq
    real(8) :: uniq(n)
-   integer :: i, j, k
+   integer :: i
    real(8) :: start, finish
 
    a = 1d0
@@ -51,7 +50,6 @@ contains
       integer :: nuniq
 
       logical :: checked(size(vals))
-      integer :: ieqto(size(vals))
       integer :: p, ipos, i, cnt
 
       checked = .false.
