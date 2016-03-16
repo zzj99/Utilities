@@ -7,5 +7,5 @@ code written during work, which may be also useful in further work.
   - count_val: count occurrence of given value in an array
   - index_val: find the index of given value in an array, 0 if not found
   
-+ g09results.f90: draw specific information from g09 log file.
++ g09results.f90: grab specific information from g09 log file.
  
