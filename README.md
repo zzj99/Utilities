@@ -9,3 +9,4 @@ code written during work, which may be also useful in further work.
   
 + g09results.f90: grab specific information from g09 log file.
  
++ distribution.f90: given an array of float point numbers, count the distribution of each number with given number of bins
