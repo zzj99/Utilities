@@ -1,127 +1,65 @@
-module distribution
-contains
-   !-- count the distribution of an given array, with given number of bins
-   subroutine count_dist(x, nbin, dups, ndups, dupsize)
-      implicit none
-      real(8) :: x(:)
-      integer :: nbin
-      real(8) :: dups(size(x))
-      integer :: ndups(size(x))
-      integer :: dupsize
-
-      real(8) :: rx(size(x))
-      real(8) :: binwidth
-      integer :: i, j, k
-      real(8) :: xmin, xmax
-
-      ! get min and max value
-      call getminmax(x, xmin, xmax)
-
-      ! calculate bin width from min and max value
-      binwidth = (xmax - xmin)/dble(nbin)
-
-      ! round the values
-      do i = 1, size(x)
-         call roundbin(x(i), binwidth, rx(i))
-      end do
-
-      ! count duplicates
-      call count_dups(rx, dups, ndups, dupsize)
-
-      return
-   end subroutine count_dist
-
-   !-- round x with given bin width
-   subroutine roundbin(x, binwidth, rx)
-      implicit none
-      real(8) :: x, binwidth
-      real(8) :: rx
-
-      rx = binwidth * (floor(x/binwidth) + 0.5d0)
-
-      return
-   end subroutine roundbin
-
-   !-- get min and max values of an array
-   subroutine getminmax(x, xmin, xmax)
-      implicit none
-      real(8) :: x(:)
-      real(8) :: xmin, xmax
-      integer :: i
-
-      xmin = 1.0d30    ! a very large number
-      xmax = -1.0d30   ! a very small number
-
-      do i = 1, size(x)
-         if (xmin > x(i)) xmin = x(i)
-         if (xmax < x(i)) xmax = x(i)
-      end do
-
-      return
-   end subroutine getminmax
-
-   !-- count duplicate elements of 
-   subroutine count_dups(x, dups, ndups, k)
-      implicit none
-      real(8) :: x(:)
-      real(8) :: dups(size(x))
-      integer :: ndups(size(x)), k
-
-      integer :: i, j
-
-      dups = 0d0
-      ndups = 0
-
-      k = 1
-      dups(1) = x(1)
-      outer: do i=2,size(x)
-         do j=1,k
-            if (dups(j) == x(i)) then
-               ! Found a match, duplicate numbers +1
-               ndups(j) = ndups(j) + 1
-               cycle outer ! start new matching
-            end if
-         end do
-         ! No match 
-         k = k + 1
-         dups(k) = x(i)
-      end do outer
-      ndups(1:k)=ndups(1:k)+1
-
-      return
-   end subroutine count_dups
-
-end module distribution
+! get histogram of a given array
 !
-program main
-   use distribution
+!     h1     h2     h3     h4
+!  +------+------+------+------+
+! min  min+w  min+2w min+3w   max=(min+4w)
+!
+! hist(:,1) the hist values
+! hist(:,2) number of hists
+subroutine histogram(hist, x, n, nbin)
    implicit none
+   integer :: n, nbin
+   real(8) :: x(n)
+   real(8) :: hist(nbin,2)
 
-   integer,parameter :: n = 100
-   integer,parameter :: nbin = 10
-   real(8) :: example(n), dups(n)
-   integer :: ndups(n), dupsize
-   integer :: i
+   integer :: i, j
+   real(8) :: width, xmin, xmax
 
-   open(1, file="example.dat")
-   open(2, file="dist.dat")
-   call random_seed()
+   ! 1. find the max and min value of the array (don't need to sort whole array)
+   xmin = minval(x)
+   xmax = maxval(x)
+
+   ! 2. calculate bin width
+   width=(xmax-xmin)/dble(nbin)
+
+   ! 3. set hist value of each bin
+   do j = 1, nbin
+      hist(j,1) = xmin + width*(j-0.5d0)
+   end do
+
+   ! 4. count hists
    do i = 1, n
-      call random_number(example(i))
-   end do
-   call count_dist(example, nbin, dups, ndups, dupsize)
-
-   write(*,*) '--- example ---'
-   do i = 1, n
-      write(1,'(E20.13)') example(i)
-   end do
-   write(*,*) '--- dist ---'
-   do i = 1, dupsize
-      write(2,'(E20.13, 2x, i3)') dups(i), ndups(i)
+       j = min(int((x(i) - xmin)/width)+1,nbin)
+      hist(j,2) = hist(j,2) + 1d0
    end do
 
-   close(1)
-   close(2)
+   ! 5. normalize density
+   hist(:,2) = hist(:,2) / (n * width)
+end subroutine
 
-   stop
+program main
+   implicit none
+   character(len=80) :: f_in, f_out
+   integer :: stat, i
+   integer,parameter :: ndata = 100000
+   integer,parameter :: nbin = 100
+   real(8) :: x(ndata), hist(nbin,2)
+
+   f_in = 'test-a.dat'
+   f_out = 'test-f.dat'
+
+   open(11, file=f_in)
+   do i = 1, ndata
+      read(11, *, iostat=stat) x(i)
+   end do
+   close(11)
+
+   call histogram( hist, x, ndata, nbin)
+
+   open(12, file=f_out)
+   do i = 1, nbin
+      write(12, '(E20.13,1x,A,1x,E20.13)') hist(i,1), ',', hist(i,2)
+   end do
+   close(12)
+
 end program main
